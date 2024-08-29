@@ -199,12 +199,14 @@ class Idealizer:
 
 
 def detect_first_activation(
-    time, signal, threshold
+    time, signal, threshold, exclusion_time
 ):
     """Return the time where a signal first crosses below a threshold."""
-
-    return time[np.argmax(signal < threshold)]
-
+    if exclusion_time != 0:
+        valid_indices = np.where(time >= exclusion_time)[0]
+        return time[valid_indices][np.argmax(signal[valid_indices] < threshold)]
+    else:
+        return time[np.argmax(signal < threshold)]
 
 def detect_first_events(
         time, signal, threshold, piezo, idealization, states

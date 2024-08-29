@@ -12,7 +12,7 @@ from PySide2.QtWidgets import (
 
 from ..gui.io_widgets import ExportFADialog, ExportFEDialog
 from ..utils.widgets import EntryWidget, TableFrame
-from ..constants import CURRENT_UNIT_FACTORS
+from ..constants import CURRENT_UNIT_FACTORS, TIME_UNIT_FACTORS
 
 debug_logger = logging.getLogger("ascam.debug")
 
@@ -31,6 +31,7 @@ class FirstActivationFrame(EntryWidget):
             self.on_episode_click, type=QtCore.Qt.QueuedConnection
         )
 
+        self.exclusion_time = 0
         self.threshold = 0
         self.find_first_events = False
         self.set_threshold()
@@ -54,6 +55,17 @@ class FirstActivationFrame(EntryWidget):
             f"{val * CURRENT_UNIT_FACTORS[self.trace_unit]:.3f}"
         )
 
+    @property
+    def exclusion_time(self):
+        t_ex = float(self.exclusion_time_entry.text())
+        return t_ex / TIME_UNIT_FACTORS[self.time_unit]
+
+    @exclusion_time.setter
+    def exclusion_time(self, val):
+        self.exclusion_time_entry.setText(
+            f"{val * TIME_UNIT_FACTORS[self.time_unit]:.3f}"
+        )
+
     def create_widgets(self):
         self.drag_threshold_button = QLabel("First Activation Threshold:")
         self.add_row(self.drag_threshold_button)
@@ -70,6 +82,20 @@ class FirstActivationFrame(EntryWidget):
         self.drag_threshold_button.toggled.connect(self.toggle_dragging_threshold)
         self.add_row(
             self.trace_unit_entry, self.threshold_entry, self.drag_threshold_button
+        )
+
+        self.exclusion_time_label = QLabel("Exclusion Time: \n(Time before which activations\nare not considered)")
+        self.add_row(self.exclusion_time_label)
+
+        self.time_unit_entry = QComboBox()
+        self.time_unit_entry.addItems(list(TIME_UNIT_FACTORS.keys()))
+        self.time_unit_entry.setCurrentIndex(1)
+        self.exclusion_time_entry = QLineEdit()
+        self.exclusion_time_entry.setText("0")
+        self.exclusion_time_entry.returnPressed.connect(self.set_threshold)
+
+        self.add_row(
+            self.time_unit_entry, self.exclusion_time_entry
         )
 
         self.first_events_toggle = QToolButton()
@@ -114,10 +140,10 @@ class FirstActivationFrame(EntryWidget):
         cancel_button.clicked.connect(self.click_cancel)
         self.add_row(cancel_button)
 
-        self.layout.addSpacing(400)
+        self.layout.addSpacing(300)
 
     def export_first_activation(self):
-        self.main.data.detect_fa(self.threshold)
+        self.main.data.detect_fa(self.threshold, self.exclusion_time)
         ExportFADialog(self.main)
 
     def export_first_events(self):
@@ -126,7 +152,7 @@ class FirstActivationFrame(EntryWidget):
 
     def show_first_activation_table(self):
         debug_logger.debug("creating first activation table")
-        self.main.data.detect_fa(self.threshold)
+        self.main.data.detect_fa(self.threshold, self.exclusion_time)
 
         self.table_frame = TableFrame(
             self,
@@ -263,7 +289,7 @@ class FirstActivationFrame(EntryWidget):
         if self.find_first_events:
             self.main.data.get_first_events(self.threshold)
         else:
-            self.main.data.detect_fa(self.threshold)
+            self.main.data.detect_fa(self.threshold, self.exclusion_time)
         self.main.plot_frame.plot_fa_line()
         self.main.plot_frame.plot_fa_threshold(self.threshold)
 

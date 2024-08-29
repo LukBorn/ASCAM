@@ -268,11 +268,11 @@ class Recording(dict):
             )
         self.current_datakey = new_datakey
 
-    def detect_fa(self, threshold):
+    def detect_fa(self, threshold, exclusion_time):
         """Apply first event detection to all episodes in the selected series"""
 
         [
-            episode.detect_first_activation(threshold)
+            episode.detect_first_activation(threshold, exclusion_time)
             for episode in self.series
             if not episode.manual_first_activation
         ]
