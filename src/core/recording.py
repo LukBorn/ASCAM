@@ -288,7 +288,7 @@ class Recording(dict):
                 dead_time = 0.000065
             else:
                 dead_time = 0.5 * episode.resolution
-            first_events = episode.detect_first_event(threshold, exclusion_time)
+            first_events = episode.detect_first_event(threshold, exclusion_time,dead_time)
             first_events_list.append(first_events)
         return np.hstack(first_events_list)
 
