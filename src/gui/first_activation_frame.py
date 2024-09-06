@@ -171,29 +171,8 @@ class FirstActivationFrame(EntryWidget):
             width=400,
         )
 
-    def show_first_event_table(self):
-        debug_logger.debug("Creating first event table")
-        self.main.data.get_first_events(self.threshold, self.exclusion_time)
-        table_data = self.main.data.create_first_event_table(
-                time_unit=self.time_unit,
-                trace_unit=self.trace_unit
-            )
-        header = ["Episode Number",
-                  f"First activation [{self.time_unit}]",
-                  f"First state amplitude [{self.trace_unit}]"]
-        for i in range(int(len(table_data)/2)):
-            header.append(f"S{i}-start [{self.time_unit}]")
-            header.append(f"S{i}-duration [{self.time_unit}]")
-        self.fe_table_frame = TableFrame(
-            self,
-            data=table_data,
-            header=header,
-            time_unit=self.time_unit,
-            title=f"First events of each state",
-            width=1000,
-        )
 
-    def show_first_event_table1(self):
+    def show_first_event_table(self):
         debug_logger.debug("Creating first event table")
         self.main.data.get_first_events1(self.threshold, self.exclusion_time)
 

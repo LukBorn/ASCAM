@@ -210,47 +210,9 @@ def detect_first_activation(
     else:
         return time[np.argmax(signal < threshold)]
 
-def detect_first_events1(
-        time, signal, threshold, exclusion_time, piezo, idealization, resolution,  states
-):
-    """Return the first activation time and first event at each state.
-    first_activation: float
-    first_events: 2xnstates matrix with start time and duration of the first
-    event in each state.
-    """
-    first_activation = detect_first_activation(time, signal, threshold, exclusion_time)
-
-    events_list = Idealizer.extract_events(idealization, time)
-    first_events = -np.ones((2, len(states)))
-
-    if piezo is not None:
-        piezo_time, _ = piezo_selection(time, piezo, signal)
-        exit_time = max(piezo_time[0], first_activation)
-    else: exit_time = first_activation
 
 
-    if resolution is None:
-        Warning('no resolution applied to idealization. Using standard preset dead time of 65 us')
-        resolution = 0.000065
-
-    exit_time -= resolution
-
-    # We skip events before first activation time and before piezo
-    events_list = events_list[events_list[:, 2] >= exit_time, :]
-    for i, state in enumerate(states):
-        event_ids = np.where(events_list[:, 0] == state)[0]
-        if len(event_ids) > 0:
-            event_id = min(event_ids)
-        else:
-            continue
-        event_start = events_list[event_id, 2]
-        event_duration = events_list[event_id, 1]
-        first_events[:, i] = [ event_start, event_duration ]
-    first_events[first_events == -1] = None
-    return first_activation, first_events
-
-
-def detect_first_events1(time, signal, threshold, exclusion_time, idealization, dead_time):
+def detect_first_events(time, signal, threshold, exclusion_time, idealization, dead_time):
 
     first_activation = detect_first_activation(time, signal, threshold, exclusion_time)
     events_list = Idealizer.extract_events(idealization, time)

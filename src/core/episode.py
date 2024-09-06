@@ -4,7 +4,7 @@ import numpy as np
 from ..utils import piezo_selection
 from ..constants import CURRENT_UNIT_FACTORS, VOLTAGE_UNIT_FACTORS, TIME_UNIT_FACTORS
 from .filtering import gaussian_filter, ChungKennedyFilter
-from .analysis import baseline_correction, detect_first_activation, Idealizer, detect_first_events1, detect_first_events
+from .analysis import baseline_correction, detect_first_activation, Idealizer, detect_first_events
 
 
 class Episode:
@@ -163,21 +163,8 @@ class Episode:
             exclusion_time
         )
 
-    def detect_first_events(self, threshold, exclusion_time, states):
-        """Detect the first activation in the episode."""
 
-        self.first_activation, self.first_events = detect_first_events(
-            self.time,
-            self.trace,
-            threshold,
-            exclusion_time,
-            self.piezo,
-            self.idealization,
-            self.resolution,
-            states
-        )
-
-    def detect_first_event1(self, threshold, exclusion_time):
+    def detect_first_event(self, threshold, exclusion_time):
         if self.idealization is None:
             raise RuntimeError("No idealization of this episode in cache. Be sure to idealize all episodes\n"
                                "For example by exporting idealization")
@@ -188,7 +175,7 @@ class Episode:
         else:
             dead_time = 0.5 * self.resolution
 
-        self.first_activation, self.first_event_time, self.first_event_amplitude = detect_first_events1(
+        self.first_activation, self.first_event_time, self.first_event_amplitude = detect_first_events(
             self.time,
             self.trace,
             threshold,
