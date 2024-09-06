@@ -176,23 +176,3 @@ class Episode:
             self.resolution,
             states
         )
-
-    def detect_first_event1(self, threshold, exclusion_time):
-        if self.idealization is None:
-            raise RuntimeError("No idealization of this episode in cache. Be sure to idealize all episodes\n"
-                               "For example by exporting idealization")
-
-        if self.resolution is None:
-            Warning('no resolution applied to idealization. Using standard preset dead time of 65 us')
-            dead_time = 0.000065
-        else:
-            dead_time = 0.5 * self.resolution
-
-        self.first_activation, self.first_event_time, self.first_event_amplitude = detect_first_events1(
-            self.time,
-            self.trace,
-            threshold,
-            exclusion_time,
-            self.idealization,
-            dead_time
-        )

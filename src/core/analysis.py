@@ -250,29 +250,6 @@ def detect_first_events1(
     return first_activation, first_events
 
 
-def detect_first_events1(time, signal, threshold, exclusion_time, idealization, dead_time):
-
-    first_activation = detect_first_activation(time, signal, threshold, exclusion_time)
-    events_list = Idealizer.extract_events(idealization, time)
-
-    start_times = events_list[:, 2]
-    stop_times = events_list[:, 3]
-
-    # Find the rows where first_activation+dead_time is between start_time and stop_time
-    matches = (start_times <= first_activation+dead_time) & (first_activation+dead_time < stop_times)
-    first_event_index = np.where(matches)[0][0]
-    lowest_state = np.unique(events_list[:,0])
-
-    #if the amplitude at the first activation is 0, take the next event
-    if events_list[first_event_index,0] == lowest_state:
-        first_event_index += 1
-
-    first_event_time = events_list[first_event_index,2]
-    first_event_amplitude = events_list[first_event_index,2]
-
-    return first_activation, first_event_time, first_event_amplitude
-
-
 def baseline_correction(
     time,
     signal,
