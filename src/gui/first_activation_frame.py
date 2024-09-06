@@ -174,19 +174,19 @@ class FirstActivationFrame(EntryWidget):
 
     def show_first_event_table(self):
         debug_logger.debug("Creating first event table")
-        self.main.data.get_first_events1(self.threshold, self.exclusion_time)
+        self.main.data.get_first_events(self.threshold, self.exclusion_time)
 
         self.table_frame = TableFrame(
             self,
-            data=self.main.data.create_first_events_table1(
+            data=self.main.data.create_first_events_table(
                 time_unit=self.time_unit,
                 trace_unit=self.trace_unit,
             ),
             header=[
                 "Episode Number",
                 f"First Activation Time [{self.time_unit}]",
-                f'First Event Time [{self.time_unit}]'
-                f"First Event Amplitude[{self.trace_unit}]",
+                f'First Event Time [{self.time_unit}]',
+                f"First Event Amplitude[{self.trace_unit}]"
             ],
             trace_unit=self.trace_unit,
             time_unit=self.time_unit,

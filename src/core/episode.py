@@ -54,9 +54,11 @@ class Episode:
         self.first_activation = None
         self.manual_first_activation = False
         self.idealization = None
+        self.resolution = None
         self.id_time = None
         # metadata about the episode
         self.n_episode = int(n_episode)
+
 
     @property
     def first_activation_amplitude(self):
@@ -164,16 +166,10 @@ class Episode:
         )
 
 
-    def detect_first_event(self, threshold, exclusion_time):
-        if self.idealization is None:
-            raise RuntimeError("No idealization of this episode in cache. Be sure to idealize all episodes\n"
-                               "For example by exporting idealization")
-
-        if self.resolution is None:
-            Warning('no resolution applied to idealization. Using standard preset dead time of 65 us')
-            dead_time = 0.000065
-        else:
-            dead_time = 0.5 * self.resolution
+    def detect_first_event(self, threshold, exclusion_time, dead_time):
+        if self.idealization is None: raise RuntimeError(
+            "No idealization of this episode in cache. Be sure to idealize all episodes. For example by exporting idealization"
+        )
 
         self.first_activation, self.first_event_time, self.first_event_amplitude = detect_first_events(
             self.time,

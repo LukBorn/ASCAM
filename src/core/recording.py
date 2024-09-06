@@ -283,7 +283,12 @@ class Recording(dict):
         first_events_list = []
 
         for episode in self.series:
-            first_events = episode.detect_first_events(threshold, exclusion_time)
+            if episode.resolution is None:
+                print('Warning: no resolution applied to idealization. Using standard preset dead time of 65 us')
+                dead_time = 0.000065
+            else:
+                dead_time = 0.5 * episode.resolution
+            first_events = episode.detect_first_event(threshold, exclusion_time)
             first_events_list.append(first_events)
         return np.hstack(first_events_list)
 
@@ -613,13 +618,13 @@ class Recording(dict):
                              trace_unit="pA",
                              ):
         export_array = self.create_first_events_table(datakey,
-                                                       time_unit,
-                                                       lists_to_save,
-                                                       trace_unit)
+                                                      time_unit,
+                                                      lists_to_save,
+                                                      trace_unit)
         header = ["Episode Number",
-                  f"First Activation Time [{self.time_unit}]",
-                  f'First Event Time [{self.time_unit}]'
-                  f"First Event Amplitude[{self.trace_unit}]",]
+                  f"First Activation Time [{time_unit}]",
+                  f'First Event Time [{time_unit}]',
+                  f"First Event Amplitude[{trace_unit}]"]
         export_array = pd.DataFrame(export_array, columns=header)
         export_array = round_off_tables(export_array, ["int", time_unit, time_unit, trace_unit])
         if not filepath.endswith(".csv"):
