@@ -237,6 +237,7 @@ class IdealizationTab(EntryWidget):
         self.add_row(self.neg_check, self.trace_unit_entry)
 
         self.amp_entry = TextEdit(self)
+        self.amp_entry.setText("0, -0.6, -1.2, -1.8, -2.5")
         self.add_row(self.amp_entry)
 
         self.drag_amp_toggle = QToolButton()

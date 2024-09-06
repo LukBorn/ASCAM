@@ -2,10 +2,12 @@ import warnings
 import copy
 import logging
 
+
 import numpy as np
 from scipy.interpolate import CubicSpline as spCubicSpline
 
 from ..utils.tools import interval_selection, piezo_selection
+
 
 
 ana_logger = logging.getLogger("ascam.analysis")
@@ -208,21 +210,31 @@ def detect_first_activation(
     else:
         return time[np.argmax(signal < threshold)]
 
-def detect_first_events(
-        time, signal, threshold, piezo, idealization, states
+def detect_first_events1(
+        time, signal, threshold, exclusion_time, piezo, idealization, resolution,  states
 ):
     """Return the first activation time and first event at each state.
     first_activation: float
     first_events: 2xnstates matrix with start time and duration of the first
     event in each state.
     """
-
-    first_activation = time[np.argmax(signal < threshold)]
-    piezo_time, _ = piezo_selection(time, piezo, signal)
+    first_activation = detect_first_activation(time, signal, threshold, exclusion_time)
 
     events_list = Idealizer.extract_events(idealization, time)
     first_events = -np.ones((2, len(states)))
-    exit_time = max(piezo_time[0], first_activation)
+
+    if piezo is not None:
+        piezo_time, _ = piezo_selection(time, piezo, signal)
+        exit_time = max(piezo_time[0], first_activation)
+    else: exit_time = first_activation
+
+
+    if resolution is None:
+        Warning('no resolution applied to idealization. Using standard preset dead time of 65 us')
+        resolution = 0.000065
+
+    exit_time -= resolution
+
     # We skip events before first activation time and before piezo
     events_list = events_list[events_list[:, 2] >= exit_time, :]
     for i, state in enumerate(states):
@@ -236,6 +248,29 @@ def detect_first_events(
         first_events[:, i] = [ event_start, event_duration ]
     first_events[first_events == -1] = None
     return first_activation, first_events
+
+
+def detect_first_events1(time, signal, threshold, exclusion_time, idealization, dead_time):
+
+    first_activation = detect_first_activation(time, signal, threshold, exclusion_time)
+    events_list = Idealizer.extract_events(idealization, time)
+
+    start_times = events_list[:, 2]
+    stop_times = events_list[:, 3]
+
+    # Find the rows where first_activation+dead_time is between start_time and stop_time
+    matches = (start_times <= first_activation+dead_time) & (first_activation+dead_time < stop_times)
+    first_event_index = np.where(matches)[0][0]
+    lowest_state = np.unique(events_list[:,0])
+
+    #if the amplitude at the first activation is 0, take the next event
+    if events_list[first_event_index,0] == lowest_state:
+        first_event_index += 1
+
+    first_event_time = events_list[first_event_index,2]
+    first_event_amplitude = events_list[first_event_index,2]
+
+    return first_activation, first_event_time, first_event_amplitude
 
 
 def baseline_correction(

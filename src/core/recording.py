@@ -277,19 +277,39 @@ class Recording(dict):
             if not episode.manual_first_activation
         ]
 
-    def get_first_events(self, threshold):
+    def get_first_events(self, threshold, exclusion_time):
+
         # Finding all states in the data
         states_in_episodes = [
             np.unique(episode.idealization) for episode in self.series
         ]
-        states = np.unique(np.hstack(states_in_episodes))
+
+        try: states = np.unique(np.hstack(states_in_episodes))
+        except TypeError:
+            raise TypeError("No idealization - remember to idealize all episodes (by exporting idealization)")
+
+        #TODO add an errorwidget that pops up if not all traces were idealized and tells you how to do it
+
         states.sort()
         states = states[::-1]
+        self.states = states
+        states = np.delete(states, np.where(states==0.0))
+
         first_events_list = []
+
         for episode in self.series:
-            first_events = episode.detect_first_events(threshold, states)
+            first_events = episode.detect_first_events(threshold, exclusion_time, states)
             first_events_list.append(first_events)
         return np.hstack(first_events_list)
+
+    def get_first_events1(self, threshold, exclusion_time):
+        first_events_list = []
+
+        for episode in self.series:
+            first_events = episode.detect_first_events1(threshold, exclusion_time)
+            first_events_list.append(first_events)
+        return np.hstack(first_events_list)
+
 
     def series_hist(
         self,
@@ -564,7 +584,7 @@ class Recording(dict):
         return export_array.astype(object)
 
     def create_first_event_table(
-            self, datakey=None, time_unit="ms", lists_to_save=None
+            self, datakey=None, time_unit="ms", lists_to_save=None, trace_unit = 'pA'
     ):
         if datakey is None:
             datakey = self.current_datakey
@@ -577,10 +597,43 @@ class Recording(dict):
             first_events = first_events_matrix.reshape(
                 first_events_matrix.size, order="F"
             ) * TIME_UNIT_FACTORS[time_unit]
-            idx_first_event = np.argmin(first_events[::2])
-            data = (episode.n_episode, ) + (f"{idx_first_event}",) + tuple(first_events)
+            first_events = first_events.round(5)
+
+            if episode.resolution is None:
+                Warning('no resolution applied to idealization. Using standard preset dead time of 65 us')
+                first_event_time = episode.first_activation + 0.000065
+            else:
+                first_event_time = episode.first_activation + episode.resolution * 0.5
+
+            idx_first_event = np.argmin(first_events[::2]-first_event_time)+1 #+1 because we removed 0 from the states
+            # eces code for finding the first event
+            # idx_first_event = np.argmin(first_events[::2])
+            data = ((episode.n_episode, ) +
+                    (episode.first_activation* TIME_UNIT_FACTORS[time_unit], ) +
+                    (self.states[idx_first_event] * CURRENT_UNIT_FACTORS[trace_unit],) +
+                    tuple(first_events))
             table_rows.append(data)
+
         return np.array(table_rows).astype(object)
+
+    def create_first_events_table1(self, datakey=None, time_unit="ms", lists_to_save=None, trace_unit = 'pA'):
+        if datakey is None:
+            datakey = self.current_datakey
+        debug_logger.debug(f"first_events for series {datakey}")
+
+        export_array = np.array(
+            [
+                (
+                episode.n_episode,
+                episode.first_activation * TIME_UNIT_FACTORS[time_unit],
+                episode.first_event_time * TIME_UNIT_FACTORS[time_unit],
+                episode.first_event_amplitude * CURRENT_UNIT_FACTORS[trace_unit],
+                )
+                for episode in self.select_episodes(datakey, lists_to_save)
+            ]
+        )
+
+        return export_array.astype(object)
 
     def export_first_activation(
         self,
@@ -629,6 +682,27 @@ class Recording(dict):
         if not filepath.endswith(".csv"):
             filepath += ".csv"
         export_df.to_csv(filepath)
+
+    def export_first_events1(self,
+                             filepath,
+                             datakey=None,
+                             time_unit="ms",
+                             lists_to_save=None,
+                             trace_unit="pA",
+                             ):
+        export_array = self.create_first_events_table1(datakey,
+                                                       time_unit,
+                                                       lists_to_save,
+                                                       trace_unit)
+        header = ["Episode Number",
+                  f"First Activation Time [{self.time_unit}]",
+                  f'First Event Time [{self.time_unit}]'
+                  f"First Event Amplitude[{self.trace_unit}]",]
+        export_array = pd.DataFrame(export_array, columns=header)
+        export_array = round_off_tables(export_array, ["int", time_unit, time_unit, trace_unit])
+        if not filepath.endswith(".csv"):
+            filepath += ".csv"
+        export_array.to_csv(filepath)
 
     @staticmethod
     def _load_from_axo(

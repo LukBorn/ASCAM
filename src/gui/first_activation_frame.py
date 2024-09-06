@@ -147,11 +147,12 @@ class FirstActivationFrame(EntryWidget):
         ExportFADialog(self.main)
 
     def export_first_events(self):
-        self.main.data.get_first_events(self.threshold)
+        #TODO doesnt work
+        self.main.data.get_first_events(self.threshold, self.exclusion_time)
         ExportFEDialog(self.main)
 
     def show_first_activation_table(self):
-        debug_logger.debug("creating first activation table")
+        debug_logger.debug("Creating first activation table")
         self.main.data.detect_fa(self.threshold, self.exclusion_time)
 
         self.table_frame = TableFrame(
@@ -172,11 +173,14 @@ class FirstActivationFrame(EntryWidget):
 
     def show_first_event_table(self):
         debug_logger.debug("Creating first event table")
-        self.main.data.get_first_events(self.threshold)
+        self.main.data.get_first_events(self.threshold, self.exclusion_time)
         table_data = self.main.data.create_first_event_table(
                 time_unit=self.time_unit,
+                trace_unit=self.trace_unit
             )
-        header = ["Episode Number", "First state"]
+        header = ["Episode Number",
+                  f"First activation [{self.time_unit}]",
+                  f"First state amplitude [{self.trace_unit}]"]
         for i in range(int(len(table_data)/2)):
             header.append(f"S{i}-start [{self.time_unit}]")
             header.append(f"S{i}-duration [{self.time_unit}]")
@@ -187,6 +191,28 @@ class FirstActivationFrame(EntryWidget):
             time_unit=self.time_unit,
             title=f"First events of each state",
             width=1000,
+        )
+
+    def show_first_event_table1(self):
+        debug_logger.debug("Creating first event table")
+        self.main.data.get_first_events1(self.threshold, self.exclusion_time)
+
+        self.table_frame = TableFrame(
+            self,
+            data=self.main.data.create_first_events_table1(
+                time_unit=self.time_unit,
+                trace_unit=self.trace_unit,
+            ),
+            header=[
+                "Episode Number",
+                f"First Activation Time [{self.time_unit}]",
+                f'First Event Time [{self.time_unit}]'
+                f"First Event Amplitude[{self.trace_unit}]",
+            ],
+            trace_unit=self.trace_unit,
+            time_unit=self.time_unit,
+            title=f"First events table",
+            width=400,
         )
 
     def on_episode_click(self, item, *args):
@@ -287,7 +313,7 @@ class FirstActivationFrame(EntryWidget):
 
     def set_threshold(self):
         if self.find_first_events:
-            self.main.data.get_first_events(self.threshold)
+            self.main.data.get_first_events(self.threshold, self.exclusion_time)
         else:
             self.main.data.detect_fa(self.threshold, self.exclusion_time)
         self.main.plot_frame.plot_fa_line()
