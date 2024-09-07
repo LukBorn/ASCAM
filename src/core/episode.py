@@ -170,12 +170,14 @@ class Episode:
         if self.idealization is None: raise RuntimeError(
             "No idealization of this episode in cache. Be sure to idealize all episodes. For example by exporting idealization"
         )
-
-        self.first_activation, self.first_event_time, self.first_event_amplitude = detect_first_events(
-            self.time,
-            self.trace,
-            threshold,
-            exclusion_time,
-            self.idealization,
-            dead_time
-        )
+        try:
+            self.first_activation, self.first_event_time, self.first_event_amplitude = detect_first_events(
+                self.time,
+                self.trace,
+                threshold,
+                exclusion_time,
+                self.idealization,
+                dead_time
+            )
+        except IndexError:
+            print(f"skipped episode {self.n_episode} because no events detected")
