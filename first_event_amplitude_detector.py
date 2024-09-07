@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import filedialog
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-#from scripts import scatter_with_marginal_histograms
+from scripts import scatter_with_marginal_histograms
 from sklearn.decomposition import PCA
 
 root = tk.Tk()
