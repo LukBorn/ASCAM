@@ -195,7 +195,7 @@ class BaselineWidget(VerticalContainerWidget):
             self.interval_entry.setToolTip(
                 "Enter intervals surround by "
                 "square brackets and seperated "
-                "by commans, eg: '[0, 10], [70, 100]'"
+                "by commas, eg: '[0, 10], [70, 100]'"
             )
             self.method_layout.addWidget(self.interval_entry)
         # insert the newly created layout in the 3rd or 4th row
