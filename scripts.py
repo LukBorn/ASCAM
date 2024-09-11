@@ -59,3 +59,54 @@ def scatter_with_marginal_histograms(ax, x_values, y_values,
 
     # Adjust layout to prevent overlap
     plt.tight_layout()
+
+
+def bar_scatter_plot_meanbars(df, title='Plot Title', ylabel='Y Axis', colorscheme='viridis'):
+    """
+    Function to plot a DataFrame's columns as scatter points, with the mean represented by a horizontal line.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame. Each column is treated as a separate set of points.
+    title (str): The title of the plot.
+    ylabel (str): The label of the Y-axis.
+    colorscheme (str): The matplotlib colorscheme to be used for the points.
+
+    Returns:
+    fig, ax: The matplotlib figure and axis objects (for use in subplots).
+    """
+
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Get the colormap based on the colorscheme provided
+    cmap = plt.get_cmap(colorscheme)
+
+    # Number of columns
+    num_cols = len(df.columns)
+
+    # Create a scatter plot for each column
+    for i, col in enumerate(df.columns):
+        # Drop NaN values from the column
+        values = df[col].dropna()
+
+        # Scatter plot for each column's values, centered on the column's iloc index
+        scatter_x = np.full(len(values), i) + np.random.uniform(-0.05, 0.05, len(values))  # Small random jitter
+        ax.scatter(scatter_x, values, color=cmap(i / num_cols), label=col, alpha=0.6)
+
+        # Plot the mean as a horizontal line, centered on the column's iloc index
+        mean_value = values.mean()
+        ax.hlines(mean_value, i - 0.2, i + 0.2, colors='red', linewidth=2)
+
+    # Set x-ticks to the column names
+    ax.set_xticks(np.arange(num_cols))
+    ax.set_xticklabels(df.columns, rotation=45, ha='right')
+
+    # Set labels and title
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+
+    # Return figure and axis for use in subplots
+    return fig, ax
+
+
+
