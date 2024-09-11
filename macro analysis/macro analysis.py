@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-#from scripts import bar_scatter_plot_meanbars
+from scripts import bar_scatter_plot_meanbars
 
-filepaths = {'A2': 'C:\\Users\\sepps\\Desktop\\ascam\\macro analysis\\A2-0908.xlsx',
-             'A4': 'C:\\Users\\sepps\\Desktop\\ascam\\macro analysis\\A4-0910.xlsx',
-             'A4G2': 'C:\\Users\\sepps\\Desktop\\ascam\\macro analysis\\A4G2-2224.xlsx'}
+
+filepaths = {'A2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A2-0908.xlsx',
+             'A4': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4-0910.xlsx',
+             'A4G2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4G2-2224.xlsx'}
 
 if True:
     plot500 = pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
@@ -21,14 +22,11 @@ if True:
             plot500[variable][key, -60] = (np.array(ms500[ms500["Holding potential (mV)"] == -60][variable].dropna()))
 
     for variable in plot500.columns:
-        x = np.concatenate(plot500[variable].tolist())
-        ycounts = [i.shape[0] for i in plot500[variable].tolist()]
-        y = []
-        for i in range(len(ycounts)):
-            y += [np.arange(100)[i]] * ycounts[i]
-        y = np.array(y) + np.random.normal(scale=0.1, size=len(y)) # no overlap
-        plt.scatter(x,y)
-        plt.set_xtick_labels = [f'{i[0]}: {i[1]} mV'for i in plot500.index]
+        bar_scatter_plot_meanbars(df = pd.DataFrame(data = plot500[variable].to_list(),
+                                                    index = [f"{i[0]}: {i[1]} mV" for i in plot500.index]).T,
+                                  title = variable,
+                                  ylabel = variable
+        )
 
 # ms2 = pd.read_excel(filepaths['A4'], sheet_name='2ms_ex')
 #

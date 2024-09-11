@@ -61,7 +61,7 @@ def scatter_with_marginal_histograms(ax, x_values, y_values,
     plt.tight_layout()
 
 
-def bar_scatter_plot_meanbars(df, title='Plot Title', ylabel='Y Axis', colorscheme='viridis'):
+def bar_scatter_plot_meanbars(df, title='Plot Title', ylabel='Y Axis', figsize=(5,3), colorscheme='viridis'):
     """
     Function to plot a DataFrame's columns as scatter points, with the mean represented by a horizontal line.
 
@@ -76,7 +76,7 @@ def bar_scatter_plot_meanbars(df, title='Plot Title', ylabel='Y Axis', colorsche
     """
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=figsize)
 
     # Get the colormap based on the colorscheme provided
     cmap = plt.get_cmap(colorscheme)
@@ -107,6 +107,5 @@ def bar_scatter_plot_meanbars(df, title='Plot Title', ylabel='Y Axis', colorsche
 
     # Return figure and axis for use in subplots
     return fig, ax
-
 
 
