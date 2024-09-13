@@ -65,10 +65,14 @@ for key in filepaths.keys():
                 # Multiply the column values by 1000
                 df[col] = df[col] * 1000000000000
                 # Rename the column by replacing '[s]' with '[ms]'
-                new_col_name = col.replace('[A]', ' [pA]')
+                new_col_name = col.replace('[A]', '[pA]')
                 df.rename(columns={col: new_col_name}, inplace=True)
 
     df["Detection error"] = df['First Activation Time [ms]'] - df['First Event Time [ms]']
+    substates = df["First Event Amplitude[pA]"].unique()
+    substates.sort()
+    substates = substates[::-1]
+    df["Subconductance state"] = df["First Event Amplitude[pA]"].apply(lambda x: np.where(substates == x)[0][0])
 
     if "EDTA" in key:
         all_EDTA = pd.concat((all_EDTA, df))
@@ -90,21 +94,46 @@ for key in filepaths.keys():
 '''
 
 df_list = (all_EDTA, all_zinc)
+
+
 def log_sqrt_hist(ax, data, bins):
-    data -= data.min()
-    ax.hist(data, bins=bins, edgecolor='black')
+    # Ensure no negative values (subtract min to shift data to positive range)
+    data = data - data.min()
+    data
+
+    # Calculate logarithmic bins based on the data range
+    log_min = np.log10(np.sort(data)[1])  # Add a small constant to avoid log(0)
+    log_max = np.log10(data.max())
+    bin_edges = np.logspace(log_min, log_max, bins)
+
+    # Plot the histogram with logarithmic bins
+    ax.hist(data, bins=bin_edges, edgecolor='black')
 
     # Set the x-axis to log scale
     ax.set_xscale('log')
+    ax.set_xlabel("log(first latency)")
 
     # Set the y-axis to square root scale
     ax.set_yscale('function', functions=(np.sqrt, lambda y: y ** 2))  # sqrt scale
+    ax.set_ylabel('sqrt(counts)')
 
+names = ['EDTA+CTZ', 'Zn+CTZ']
+for j, df1 in enumerate(df_list):
+    unique_levels = df1["Subconductance state"].unique()
+    unique_levels.sort()
 
+    # Create a figure with as many columns as there are unique levels
+    fig, ax = plt.subplots(1, ncols=len(unique_levels), figsize=(5 * len(unique_levels), 4))
 
-for df1 in df_list:
-    fig, ax = plt.subplots(1, ncols=df1["First Event Amplitude [pA]"].unique().shape[0])
-    for i, level in enumerate(df1["First Event Amplitude [pA]"].unique()):
-        subset = df1[df1["First Event Amplitude [pA]"] == level]
-        log_sqrt_hist(ax=ax[i], data= subset["First Event Time [ms]"], bins = 50)
+    # If there's only one unique level, make ax iterable
+    if len(unique_levels) == 1:
+        ax = [ax]  # Convert ax to a list to handle indexing
 
+    for i, level in enumerate(unique_levels):
+        subset = df1[df1["Subconductance state"] == level]
+        # Plot the histogram for each sub-level
+        log_sqrt_hist(ax=ax[i], data=subset["First Event Time [ms]"], bins=50)
+        ax[i].set_title(f"State {level}")  # Add title for each subplot
+    fig.suptitle(names[j])
+    plt.tight_layout()  # Avoid overlap between subplots
+    plt.show()  # Show the figure
