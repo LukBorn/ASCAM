@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 #from scripts import bar_scatter_plot_meanbars
 from matplotlib.gridspec import GridSpec
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 def bar_scatter_plot_meanbars(df, ax, title='Plot Title', ylabel='Y Axis', colorscheme='viridis',
                               plot_error_bars = True, plot_mean_bars = True, error_type = "bar", plot_line = False):
@@ -70,6 +72,12 @@ filepaths = {'A2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A2-09
              'A4': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4-0910.xlsx',
              'A4G2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4G2-2224.xlsx'}
 
+
+# Get the viridis colormap
+cmap = cm.get_cmap('viridis')
+
+
+
 """
 500ms
 """
@@ -105,77 +113,276 @@ for key in filepaths:
 
 plot2["Peak (pA)"] = plot2["Peak (pA)"].abs()
 
+plot_500 = False
+if plot_500:
+    fig, ax = plt.subplots(1,3)
+    for i, variable in enumerate(plot500.columns[:3]):
+        bar_scatter_plot_meanbars(df = pd.DataFrame(data = plot500[variable].to_list(),
+                                                    index = [f"{i[0]}: {i[1]} mV" for i in plot500.index]).T,
+                                  ax = ax[i],
+                                  title = "",
+                                  ylabel = variable
+        )
+    plt.tight_layout()
+
+plot_tau = False
+if plot_tau:
+    fig, ax = plt.subplots(1,3)
+    for i, variable in enumerate(plot500.columns[3:5]):
+        bar_scatter_plot_meanbars(df = pd.DataFrame(data = plot500[variable].to_list(),
+                                                    index = [f"{i[0]}: {i[1]} mV" for i in plot500.index]).T,
+                                  ax = ax[i],
+                                  title = "",
+                                  ylabel = variable + " 500ms"
+        )
+    bar_scatter_plot_meanbars(df = pd.DataFrame(data = plot2['weighted tau (ms)'].to_list(),
+                                                    index = [f"{i[0]}: {i[1]} mV" for i in plot500.index]).T,
+                                  ax = ax[2],
+                                  title = "",
+                                  ylabel = variable + " 2ms")
+    plt.tight_layout()
+
+
+
 """
 increment
 """
-plot_increment = pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
-                                                                  names=("condition","holding_potential")),
-                              columns = [0,25,100,225,400,625,900,1225,1600,2025,2500,3025])
-for key in filepaths:
-    increment = pd.read_excel(filepaths[key], sheet_name='increment_ex').set_index('holding v').T
-    increment.index = increment.index.astype(float).astype(int)
+plot_increment = True
+if plot_increment:
+    plot_increment = pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
+                                                                      names=("condition","holding_potential")),
+                                  columns = [0,25,100,225,400,625,900,1225,1600,2025,2500,3025])
+    for key in filepaths:
+        increment = pd.read_excel(filepaths[key], sheet_name='increment_ex').set_index('holding v').T
+        increment.index = increment.index.astype(float).astype(int)
 
-    for variable in plot_increment.columns:
-        plot_increment[variable][key, 50] = (np.array(increment[increment.index == 50][variable].dropna()))
-        plot_increment[variable][key, -60] = (np.array(increment[increment.index == -60][variable].dropna()))
+        for variable in plot_increment.columns:
+            plot_increment[variable][key, 50] = (np.array(increment[increment.index == 50][variable].dropna()))
+            plot_increment[variable][key, -60] = (np.array(increment[increment.index == -60][variable].dropna()))
+
+    plot_increment.index = [f"{i[0]}: {i[1]} mV" for i in plot_increment.index]
+    plot_increment.drop(0, axis = 1, inplace = True)
+
+
+    # Filter data for holding potential 50 mV and -60 mV
+    plot_increment_50 = plot_increment.loc[plot_increment.index.str.contains("50 mV")]
+    plot_increment_60 = plot_increment.loc[plot_increment.index.str.contains("-60 mV")]
+
+    # Create two vertically stacked subplots
+    fig, ax = plt.subplots(2, 1, figsize=(12, 9), sharex=True)
+    # Normalize the number of conditions to match the colormap range
+    norm = mcolors.Normalize(vmin=0, vmax=len(plot_increment_50.index) - 1)
+    # Plot for holding potential = 50 mV
+    for i, condition in enumerate(plot_increment_50.index):
+        means = plot_increment_50.loc[condition].apply(np.mean)
+        error = plot_increment_50.loc[condition].apply(np.std)
+
+        ax[0].plot(plot_increment.columns, means, label=f'{condition}', marker='o',color = cmap(norm(i)))
+        ax[0].fill_between(plot_increment.columns, means - error, means + error, alpha=0.3,color = cmap(norm(i)))
+
+    ax[0].set_ylabel('Current (normalized to first activation)',fontsize=12)
+    ax[0].set_title('Holding Potential = 50 mV',fontsize=14)
+    ax[0].legend()
+
+    # Plot for holding potential = -60 mV
+    for condition in plot_increment_60.index:
+        means = plot_increment_60.loc[condition].apply(np.mean)
+        error = plot_increment_60.loc[condition].apply(np.std)
+        ax[1].plot(plot_increment.columns, means, label=f'{condition}', marker='o',color = cmap(norm(i)))
+        ax[1].fill_between(plot_increment.columns, means - error, means + error, alpha=0.3,color = cmap(norm(i)))
+
+    ax[1].set_ylabel('Current (normalized to first activation)',fontsize=12)
+    ax[1].set_xlabel("Time (ms)",fontsize=12)
+    ax[1].set_title('Holding Potential = -60 mV',fontsize=14)
+    ax[1].legend()
+
+    # Set x-axis ticks to be the same for both subplots
+    ax[1].set_xticks(plot_increment.columns)
+
+    # Adjust layout
+    plt.tight_layout()
+    plt.show()
 
 """
 trains
 """
+plot_10hz=False
+if plot_10hz:
+    plot_10hz =  pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
+                                                                      names=("condition","holding_potential")),
+                                  columns = np.arange(0,5000,100))
+    for key in filepaths:
+        hz10 = pd.read_excel(filepaths[key], sheet_name='10Hz_ex').set_index('holding v').T
+        hz10.index = hz10.index.astype(float).astype(int)
 
-plot_10hz =  pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
-                                                                  names=("condition","holding_potential")),
-                              columns = np.arange(0,5000,100))
-for key in filepaths:
-    hz10 = pd.read_excel(filepaths[key], sheet_name='10Hz_ex').set_index('holding v').T
-    hz10.index = hz10.index.astype(float).astype(int)
+        for variable in plot_10hz.columns:
+            plot_10hz[variable][key, 50] = (np.array(hz10[hz10.index == 50][variable].dropna()))
+            plot_10hz[variable][key, -60] = (np.array(hz10[hz10.index == -60][variable].dropna()))
 
-    for variable in plot_10hz.columns:
-        plot_10hz[variable][key, 50] = (np.array(hz10[hz10.index == 50][variable].dropna()))
-        plot_10hz[variable][key, -60] = (np.array(hz10[hz10.index == -60][variable].dropna()))
+    plot_10hz.index = [f"{i[0]}: {i[1]} mV" for i in plot_10hz.index]
 
-plot_20hz =  pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
-                                                                  names=("condition","holding_potential")),
-                              columns = np.arange(0,5000,50))
-for key in ['A4','A4G2']:
-    hz20 = pd.read_excel(filepaths[key], sheet_name='20Hz_ex').set_index('holding v').T
-    hz20.index = hz20.index.astype(float).astype(int)
+    # Filter data for holding potential 50 mV and -60 mV
+    plot_10hz_50 = plot_10hz.loc[plot_10hz.index.str.contains("50 mV")]
+    plot_10hz_60 = plot_10hz.loc[plot_10hz.index.str.contains("-60 mV")]
+    fig, ax = plt.subplots(2, 1, figsize=(12,9), sharex=True)
+    # Normalize the number of conditions to match the colormap range
+    norm = mcolors.Normalize(vmin=0, vmax=len(plot_10hz_50.index) - 1)
 
-    for variable in plot_20hz.columns:
-        plot_20hz[variable][key, 50] = (np.array(hz20[hz20.index == 50][variable].dropna()))
-        plot_20hz[variable][key, -60] = (np.array(hz20[hz20.index == -60][variable].dropna()))
+    # Plot for holding potential = 50 mV
+    for condition in plot_10hz_50.index:
+        means = plot_10hz_50.loc[condition].apply(np.mean)
+        error = plot_10hz_50.loc[condition].apply(np.std)
+        ax[0].plot(plot_10hz.columns, means, label=f'{condition}', marker='o',color = cmap(norm(i)))
+        ax[0].fill_between(plot_10hz.columns, means - error, means + error, alpha=0.3,color = cmap(norm(i)))
 
-plot_50hz =  pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
-                                                                  names=("condition","holding_potential")),
-                              columns = np.arange(0,5000,20))
+    ax[0].set_ylabel('Current (normalized to first activation)',fontsize=12)
+    ax[0].set_title('Holding Potential = 50 mV',fontsize=14)
+    ax[0].legend()
 
-for key in ['A4', 'A4G2']:
-    hz50 = pd.read_excel(filepaths[key], sheet_name='50Hz_ex').set_index('holding v').T
-    hz50.index = hz50.index.astype(float).astype(int)
+    # Plot for holding potential = -60 mV
+    for condition in plot_10hz_60.index:
+        means = plot_10hz_60.loc[condition].apply(np.mean)
+        error = plot_10hz_60.loc[condition].apply(np.std)
+        ax[1].plot(plot_10hz.columns, means, label=f'{condition}', marker='o',color = cmap(norm(i)))
+        ax[1].fill_between(plot_10hz.columns, means - error, means + error, alpha=0.3,color = cmap(norm(i)))
 
-    for variable in plot_10hz.columns:
-        plot_50hz[variable][key, 50] = (np.array(hz50[hz50.index == 50][variable].dropna()))
-        plot_50hz[variable][key, -60] = (np.array(hz50[hz50.index == -60][variable].dropna()))
+    ax[1].set_ylabel('Current (normalized to first activation)',fontsize=12)
+    ax[1].set_xlabel("Time (ms)", fontsize=12)
+    ax[1].set_title('Holding Potential = -60 mV', fontsize=14)
+    ax[1].legend()
+
+    # Set x-axis ticks to be the same for both subplots
+    ax[1].set_xticks(plot_10hz.columns[::2])
+
+    # Adjust layout
+    plt.tight_layout()
+    plt.show()
+
+plot_20hz=False
+if plot_20hz:
+    plot_20hz =  pd.DataFrame(index = pd.MultiIndex.from_product((('A4','A4G2'),(50,-60)),
+                                                                      names=("condition","holding_potential")),
+                                  columns = np.arange(0,5000,50))
+    for key in ['A4','A4G2']:
+        hz20 = pd.read_excel(filepaths[key], sheet_name='20Hz_ex').set_index('holding v').T
+        hz20.index = hz20.index.astype(float).astype(int)
+
+        for variable in plot_20hz.columns:
+            plot_20hz[variable].loc[key, 50] = (np.array(hz20[hz20.index == 50][variable].dropna()))
+            plot_20hz[variable].loc[key, -60] = (np.array(hz20[hz20.index == -60][variable].dropna()))
+
+    plot_20hz.index = [f"{i[0]}: {i[1]} mV" for i in plot_20hz.index]
+
+    plot_20hz.dropna(axis =0, how="all", inplace = True)
+
+    # Filter data for holding potential 50 mV and -60 mV
+    plot_20hz_50 = plot_20hz.loc[plot_20hz.index.str.contains("50 mV")]
+    plot_20hz_60 = plot_20hz.loc[plot_20hz.index.str.contains("-60 mV")]
+    fig, ax = plt.subplots(2, 1, figsize=(12, 9), sharex=True)
+    # Normalize the number of conditions to match the colormap range
+    norm = mcolors.Normalize(vmin=0, vmax=len(plot_20hz_50.index) - 1)
+
+    # Plot for holding potential = 50 mV
+    for condition in plot_20hz_50.index:
+        means = plot_20hz_50.loc[condition].apply(np.mean)
+        error = plot_20hz_50.loc[condition].apply(np.std)
+        ax[0].plot(plot_20hz.columns, means, label=f'{condition}', marker='o',color = cmap(norm(i)))
+        ax[0].fill_between(plot_20hz.columns, means - error, means + error, alpha=0.3,color = cmap(norm(i)))
+
+    ax[0].set_ylabel('Current (normalized to first activation)', fontsize=12)
+    ax[0].set_title('Holding Potential = 50 mV', fontsize=14)
+    ax[0].legend()
+
+    # Plot for holding potential = -60 mV
+    for condition in plot_20hz_60.index:
+        means = plot_20hz_60.loc[condition].apply(np.mean)
+        error = plot_20hz_60.loc[condition].apply(np.std)
+        ax[1].plot(plot_20hz.columns, means, label=f'{condition}', marker='o')
+        ax[1].fill_between(plot_20hz.columns, means - error, means + error, alpha=0.3)
+
+    ax[1].set_ylabel('Current (normalized to first activation)', fontsize=12)
+    ax[1].set_xlabel("Time (ms)", fontsize=12)
+    ax[1].set_title('Holding Potential = -60 mV', fontsize=14)
+    ax[1].legend()
+
+    # Set x-axis ticks to be the same for both subplots
+    ax[1].set_xticks(plot_20hz.columns[::4])
+
+    # Adjust layout
+    plt.tight_layout()
+    plt.show()
+
+
+plot_50hz = False #"""Doesnt work"""
+if plot_50hz:
+    plot_50hz =  pd.DataFrame(index = pd.MultiIndex.from_product((['A4','A4G2'],(50,-60)),
+                                                                      names=("condition","holding_potential")),
+                                  columns = np.arange(0,5000,20))
+
+    for key in ['A4', 'A4G2']:
+        hz50 = pd.read_excel(filepaths[key], sheet_name='50Hz_ex').set_index('holding v').T
+        hz50.index = hz50.index.astype(float).astype(int)
+
+        for variable in plot_50hz.columns:
+            plot_50hz[variable][key, 50] = (np.array(hz50[hz50.index == 50][variable].dropna()))
+            plot_50hz[variable][key, -60] = (np.array(hz50[hz50.index == -60][variable].dropna()))
+    plot_50hz = plot_50hz[~plot_50hz.applymap(lambda x: x == []).all(axis=1)]
+    plot_50hz.index = [f"{i[0]}: {i[1]} mV" for i in plot_50hz.index]
+    plot_50hz.drop(0, axis=1, inplace=True)
+
+    fig, ax = plt.subplots()
+
+    for condition in plot_50hz.index:
+        means = plot_50hz.loc[condition].apply(np.mean)
+        error = plot_50hz.loc[condition].apply(np.std)
+        ax.plot(plot_50hz.columns, means, label=f'{condition}', marker='o')
+        ax.fill_between(plot_50hz.columns, means - error, means + error, alpha=0.3)
+
+    ax.set_label('Current (normalized to first activation)')
+    ax.set_xlabel("Time (ms)")
+    ax.set_xticks(plot_50hz.columns)
+    ax.legend()
+    plt.show()
 
 """
 iv
 """
-plot_iv = plot_increment = pd.DataFrame(index = filepaths.keys(),
-                                        columns = [-100, -80, -60, -40, -20, 0, 20, 40, 60, 80, 100])
-for key in filepaths:
-    iv = pd.read_excel(filepaths[key], sheet_name='IV_ex').set_index("Recording number").T
+plot_iv = False
+if plot_iv:
+    plot_iv = pd.DataFrame(index = filepaths.keys(),
+                                            columns = [-100, -80, -60, -40, -20, 0, 20, 40, 60, 80, 100])
+    for key in filepaths:
+        iv = pd.read_excel(filepaths[key], sheet_name='IV_ex').set_index("Recording number").T
 
-    for variable in plot_iv.columns:
-        plot_iv[variable][key] = (np.array(iv[variable].dropna()))
+        for variable in plot_iv.columns:
+            plot_iv[variable][key] = (np.array(iv[variable].dropna()))
+
+    fig, ax = plt.subplots(1,3)
+
+    ax[0].set_ylabel('Current (normalized to -80mv)')
+
+    for i, condition in enumerate(plot_iv.index):
+        x = np.array(len(plot_iv.loc[condition].to_list()[1]) * plot_iv.columns.to_list()).astype(float)
+        x.sort()
+        x += np.random.normal(loc = 0, scale = 1, size = x.shape[0])
+        means = plot_iv.loc[condition].apply(np.mean)
+        error = plot_iv.loc[condition].apply(np.std)
+
+        ax[i].scatter(x = x, y = plot_iv.loc[condition].to_list(), marker='o',facecolors='none', edgecolors='grey' )
+        ax[i].plot(plot_iv.columns, means, color = 'black')
+        ax[i].errorbar(x = plot_iv.columns, y = means, yerr= error,color = 'darkslategrey')
+        ax[i].set_xticks(plot_iv.columns)
+        ax[i].set_xlabel("Voltage (mv)")
+        ax[i].set_title(condition)
+        ax[i].grid()
+        ax[i].set_ylim(ymax=2.5, ymin=-2.5)
 
 
-
-for i, condition in enumerate(plot_iv.index):
-    x = np.array(len(plot_iv.loc[condition].to_list()[1]) * plot_iv.columns.to_list()).astype(float)
-    x.sort()
-    x += np.random.normal(loc = 10, scale = 1, size = x.shape[0])
-    plt.scatter(x = x, y = plot_iv.loc[condition].to_list())
-
+        # get the axis
+        #ax[i] = plt.gca()
+        #ax[i].spines['bottom'].set_position('zero')
+        #ax[i].spines['left'].set_position('zero')
+    fig.tight_layout()
 
 """
 
