@@ -9,6 +9,8 @@ sampling_rate = 40000
 fig = plt.figure(figsize=(15, 10))
 gs = GridSpec(2, 3, figure=fig)
 
+all_EDTA = pd.DataFrame()
+all_zinc = pd.DataFrame()
 
 filepaths = {
     'EDTA1': ("/Users/lukasborn/Desktop/analysis/ASCAM/EDTA1.171025 019.apkl_first_events.csv",
@@ -63,15 +65,20 @@ for key in filepaths.keys():
                 # Multiply the column values by 1000
                 df[col] = df[col] * 1000000000000
                 # Rename the column by replacing '[s]' with '[ms]'
-                new_col_name = col.replace('[A]', '[pA]')
+                new_col_name = col.replace('[A]', ' [pA]')
                 df.rename(columns={col: new_col_name}, inplace=True)
 
     df["Detection error"] = df['First Activation Time [ms]'] - df['First Event Time [ms]']
 
+    if "EDTA" in key:
+        all_EDTA = pd.concat((all_EDTA, df))
+    elif 'Zn' in key:
+        all_zinc = pd.concat((all_zinc, df))
 
+'''
     scatter_with_marginal_histograms(ax=filepaths[key][2],
                                      x_values=df['First Event Time [ms]'],
-                                     y_values=df['First Event Amplitude[pA]'],
+                                     y_values=df['First Event Amplitude [pA]'],
                                      x_bins=np.linspace(start=df['First Activation Time [ms]'].min() - 1 / sampling_rate,
                                                         stop=df['First Activation Time [ms]'].max() + 1 / sampling_rate,
                                                         num=int(df.shape[0] / 5)),
@@ -80,5 +87,24 @@ for key in filepaths.keys():
                                      y_label='Amplitude [pA]',
                                      title=filepaths[key][4],
                                      log_x=False)
+'''
 
+df_list = (all_EDTA, all_zinc)
+def log_sqrt_hist(ax, data, bins):
+    data -= data.min()
+    ax.hist(data, bins=bins, edgecolor='black')
+
+    # Set the x-axis to log scale
+    ax.set_xscale('log')
+
+    # Set the y-axis to square root scale
+    ax.set_yscale('function', functions=(np.sqrt, lambda y: y ** 2))  # sqrt scale
+
+
+
+for df1 in df_list:
+    fig, ax = plt.subplots(1, ncols=df1["First Event Amplitude [pA]"].unique().shape[0])
+    for i, level in enumerate(df1["First Event Amplitude [pA]"].unique()):
+        subset = df1[df1["First Event Amplitude [pA]"] == level]
+        log_sqrt_hist(ax=ax[i], data= subset["First Event Time [ms]"], bins = 50)
 
