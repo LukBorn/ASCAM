@@ -125,7 +125,7 @@ if plot_500:
         )
     plt.tight_layout()
 
-plot_tau = False
+plot_tau = True
 if plot_tau:
     fig, ax = plt.subplots(1,3)
     for i, variable in enumerate(plot500.columns[3:5]):
@@ -147,7 +147,7 @@ if plot_tau:
 """
 increment
 """
-plot_increment = True
+plot_increment = False
 if plot_increment:
     plot_increment = pd.DataFrame(index = pd.MultiIndex.from_product((list(filepaths.keys()),(50,-60)),
                                                                       names=("condition","holding_potential")),
@@ -162,14 +162,14 @@ if plot_increment:
 
     plot_increment.index = [f"{i[0]}: {i[1]} mV" for i in plot_increment.index]
     plot_increment.drop(0, axis = 1, inplace = True)
-
+    #plot_increment.columns = [0]+(plot_increment.columns[1:]-plot_increment.columns[:-1] -25).to_list()
 
     # Filter data for holding potential 50 mV and -60 mV
     plot_increment_50 = plot_increment.loc[plot_increment.index.str.contains("50 mV")]
     plot_increment_60 = plot_increment.loc[plot_increment.index.str.contains("-60 mV")]
 
     # Create two vertically stacked subplots
-    fig, ax = plt.subplots(2, 1, figsize=(12, 9), sharex=True)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5), sharex=True)
     # Normalize the number of conditions to match the colormap range
     norm = mcolors.Normalize(vmin=0, vmax=len(plot_increment_50.index) - 1)
     # Plot for holding potential = 50 mV
@@ -177,9 +177,9 @@ if plot_increment:
         means = plot_increment_50.loc[condition].apply(np.mean)
         error = plot_increment_50.loc[condition].apply(np.std)
 
-        ax[0].plot(plot_increment.columns, means, label=f'{condition}', marker='o',color = cmap(norm(i)))
-        ax[0].fill_between(plot_increment.columns, means - error, means + error, alpha=0.3,color = cmap(norm(i)))
-
+        ax[0].plot(plot_increment.columns, means, label=f'{condition}', marker='o',)
+        ax[0].fill_between(plot_increment.columns, means - error, means + error, alpha=0.3)
+    ax[0].set_xlabel("Time since last pulse (ms)", fontsize=12)
     ax[0].set_ylabel('Current (normalized to first activation)',fontsize=12)
     ax[0].set_title('Holding Potential = 50 mV',fontsize=14)
     ax[0].legend()
@@ -188,16 +188,18 @@ if plot_increment:
     for condition in plot_increment_60.index:
         means = plot_increment_60.loc[condition].apply(np.mean)
         error = plot_increment_60.loc[condition].apply(np.std)
-        ax[1].plot(plot_increment.columns, means, label=f'{condition}', marker='o',color = cmap(norm(i)))
-        ax[1].fill_between(plot_increment.columns, means - error, means + error, alpha=0.3,color = cmap(norm(i)))
+        ax[1].plot(plot_increment.columns, means, label=f'{condition}', marker='o')
+        ax[1].fill_between(plot_increment.columns, means - error, means + error, alpha=0.3)
 
-    ax[1].set_ylabel('Current (normalized to first activation)',fontsize=12)
-    ax[1].set_xlabel("Time (ms)",fontsize=12)
+
+    ax[1].set_xlabel("Time since last pulse (ms)",fontsize=12)
     ax[1].set_title('Holding Potential = -60 mV',fontsize=14)
     ax[1].legend()
 
     # Set x-axis ticks to be the same for both subplots
-    ax[1].set_xticks(plot_increment.columns)
+    ax[1].set_xscale('log')
+    #ax[1].set_xticks(plot_increment.columns)
+    #ax[1].set_xticklabels([0]+(plot_increment.columns[1:]-plot_increment.columns[:-1] -25).to_list())
 
     # Adjust layout
     plt.tight_layout()

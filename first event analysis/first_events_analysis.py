@@ -118,7 +118,7 @@ def log_sqrt_hist(ax, data, bins):
     ax.set_yscale('function', functions=(np.sqrt, lambda y: y ** 2))  # sqrt scale
     ax.set_ylabel('sqrt(counts)')
 
-names = ['EDTA+CTZ', 'Zn+CTZ']
+names = [('EDTA+CTZ',125), ('Zn+CTZ',305)]
 for j, df1 in enumerate(df_list):
     unique_levels = df1["Subconductance state"].unique()
     unique_levels.sort()
@@ -131,7 +131,12 @@ for j, df1 in enumerate(df_list):
         print(subset.shape)
         # Plot the histogram for each sub-level
         log_sqrt_hist(ax=ax[i], data=subset["First Event Time [ms]"], bins=50)
-        ax[i].set_title(f"State {level}")  # Add title for each subplot
-    fig.suptitle(names[j])
+        ax[i].set_title(f"Subconductance state {level+1}")  # Add title for each subplot
+    fig.suptitle(names[j][0])
     plt.tight_layout()  # Avoid overlap between subplots
+    plt.setp(ax, xlim = (0.01,100), ylim = (0,names[j][1]))
+    plt.setp(ax[1], yticklabels=[], ylabel='')
+    plt.setp(ax[2], yticklabels=[], ylabel='')
+    plt.setp(ax[3], yticklabels=[], ylabel='')
+
     plt.show()  # Show the figure
