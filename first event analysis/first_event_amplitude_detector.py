@@ -38,7 +38,7 @@ experiment = 'Zn1'
 verbose = True
 drop_nonzero_t0 = False
 drop_early_max_t_act = False
-dead_time = 1
+dead_time = 0
 
 
 t_act = pd.read_csv(filepaths.loc[experiment]["t_act"], names=("episode", "t_act"), index_col="episode")
@@ -57,8 +57,8 @@ events = events[events["episode number"].isin(t_act.index)]
 
 t0 = t_act.min()[0]
 sub_levels = events['amplitude [pA]'].unique()
-sub_levels
-pass
+
+
 """
 Results Dataframe
 index: episodes
