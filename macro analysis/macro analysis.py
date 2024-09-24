@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
+from scipy.stats import kruskal, mannwhitneyu
+import itertools
+
 
 def bar_scatter_plot_meanbars(df, ax, title='Plot Title', ylabel='Y Axis', colorscheme='viridis',
                               plot_error_bars = True, plot_mean_bars = True, error_type = "bar", plot_line = False):
@@ -67,10 +70,68 @@ def bar_scatter_plot_meanbars(df, ax, title='Plot Title', ylabel='Y Axis', color
     ax.set_ylabel(ylabel)
     ax.set_title(title)
 
+from scipy.stats import kruskal, mannwhitneyu
+import itertools
 
-filepaths = {'A2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A2-0908.xlsx',
-             'A4': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4-0910.xlsx',
-             'A4G2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4G2-2224.xlsx'}
+def kruskal_wallis_with_posthoc(df, alpha=0.05):
+    """
+    Performs the Kruskal-Wallis test to check for differences between multiple groups (columns),
+    and if significant, conducts pairwise Mann-Whitney U tests with Bonferroni correction.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame where each column represents a group of data.
+    alpha (float): The significance level to use for the tests (default is 0.05).
+
+    Returns:
+    None (prints results to the console).
+    """
+    df = df.dropna(axis=1, how="all")  # Drop columns with all NaN values
+    num_cols = len(df.columns)
+
+    # Store column data for pairwise comparisons
+    group_data = [df[col].dropna().values for col in df.columns]
+
+    # Kruskal-Wallis test across all groups
+    if num_cols > 1:
+        stat, p_val = kruskal(*group_data)
+        print(f"Kruskal-Wallis test result: p-value = {p_val:.5f}")
+
+        # If Kruskal-Wallis test is significant, perform pairwise Mann-Whitney U tests with Bonferroni correction
+        if p_val < alpha:
+            print("Significant differences found. Performing pairwise Mann-Whitney U tests with Bonferroni correction.")
+            pairs = list(itertools.combinations(range(num_cols), 2))  # Pairwise combinations of columns
+            bonferroni_alpha = alpha / len(pairs)  # Bonferroni correction for pairwise comparisons
+            significant_pairs = []
+
+            for i, j in pairs:
+                u_stat, p_val = mannwhitneyu(group_data[i], group_data[j], alternative='two-sided')
+                if p_val < bonferroni_alpha:
+                    significant_pairs.append((df.columns[i], df.columns[j], p_val))
+                print(f"Mann-Whitney U test between {df.columns[i]} and {df.columns[j]}: p-value = {p_val:.5f}")
+
+            if significant_pairs:
+                print(f"\nSignificant pairwise differences found (Bonferroni-corrected alpha = {bonferroni_alpha:.5f}):")
+                for pair in significant_pairs:
+                    print(f"  {pair[0]} vs {pair[1]}: p-value = {pair[2]:.5f}")
+            else:
+                print(f"No significant pairwise differences detected (Bonferroni-corrected alpha = {bonferroni_alpha:.5f}).")
+        else:
+            print(f"No significant differences detected (p-value = {p_val:.5f}).")
+    else:
+        print("Not enough groups to perform Kruskal-Wallis test.")
+
+
+
+
+#filepaths = {'A2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A2-0908.xlsx',
+#             'A4': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4-0910.xlsx',
+#             'A4G2': '/Users/lukasborn/Desktop/analysis/ASCAM/macro analysis/A4G2-2224.xlsx'}
+
+filepaths = {'A2': 'C:\\Users\\sepps\Desktop\\ascam\\macro analysis\\A2-0908.xlsx',
+             'A4': 'C:\\Users\\sepps\\Desktop\\ascam\\macro analysis\\A4-0910.xlsx',
+             'A4G2': 'C:\\Users\\sepps\\Desktop\\ascam\\macro analysis\\A4G2-2224.xlsx'}
+
+
 
 
 # Get the viridis colormap
@@ -124,8 +185,12 @@ if plot_500:
                                   ylabel = variable
         )
     plt.tight_layout()
+print("plot 500")
+for i, variable in enumerate(plot500.columns[:3]):
+    kruskal_wallis_with_posthoc( df = pd.DataFrame(data = plot500[variable].to_list(),
+                                                   index = [f"{i[0]}: {i[1]} mV" for i in plot500.index]).T,)
 
-plot_tau = True
+plot_tau = False
 if plot_tau:
     fig, ax = plt.subplots(1,3)
     for i, variable in enumerate(plot500.columns[3:5]):
@@ -142,7 +207,13 @@ if plot_tau:
                                   ylabel = variable + " 2ms")
     plt.tight_layout()
 
+print("plot tau")
+for i, variable in enumerate(plot500.columns[3:5]):
+    kruskal_wallis_with_posthoc( df = pd.DataFrame(data = plot500[variable].to_list(),
+                                                   index = [f"{i[0]}: {i[1]} mV" for i in plot500.index]).T,)
 
+kruskal_wallis_with_posthoc(df=pd.DataFrame(data=plot2['weighted tau (ms)'].to_list(),
+                                          index=[f"{i[0]}: {i[1]} mV" for i in plot500.index]).T,)
 
 """
 increment
